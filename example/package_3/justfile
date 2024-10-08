@@ -1,0 +1,16 @@
+#!/usr/bin/env just --justfile
+
+build:
+    yarn && yarn build
+
+upload:
+    echo "upload package_2"
+
+deploy:
+    echo "NOOP upload package_2"
+
+test:
+    echo "NOOP test package_2"
+
+package:
+    echo "NOOP package package_2"

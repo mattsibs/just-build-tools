@@ -1,0 +1,17 @@
+
+name: package1-build
+
+build:
+  docker:
+    - image: circleci/node:latest
+  steps:
+    - checkout
+    - run:
+        name: Build package_1
+        command: cd package_1 && just build
+
+
+workflow:
+  context:
+    - context-1
+    - san-slack

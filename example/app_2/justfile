@@ -1,0 +1,13 @@
+#!/usr/bin/env just --justfile
+
+build:
+    yarn && yarn build
+
+test:
+    echo "NOOP test app2"
+
+package:
+    echo "NOOP package app2"
+
+deploy:
+    echo "deploy app2 ..."

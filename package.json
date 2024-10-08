@@ -1,0 +1,50 @@
+{
+  "name": "just-build-tools",
+  "version": "0.0.5",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattsibs/just-build-tools"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "bin": {
+    "just-build-tools": "dist/index.js"
+  },
+  "keywords": [
+    "just",
+    "build-tools",
+    "just-build-tools",
+    "monorepo",
+    "just-install",
+    "dependency-graph",
+    "tech-agnostic"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts ",
+    "start": "node dist/index.js",
+    "dev": "tsup src/index.ts --watch",
+    "start-registry": "cd verdaccio && verdaccio",
+    "publish-local": "npm publish --tag fix --registry http://localhost:4873"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.7.5",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "js-yaml": "^4.1.0",
+    "just-install": "^2.0.2",
+    "yaml": "^2.5.1"
+  }
+}

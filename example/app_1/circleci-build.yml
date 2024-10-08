@@ -1,0 +1,24 @@
+build:
+  - app1-build-step-1:
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build app1
+            command: cd app1 && just build
+  - app1-build-step-2:
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build app1
+            command: cd app1 && just build
+
+
+workflow:
+  - app1-build-step-1:
+      context:
+        - context-1
+        - san-slack

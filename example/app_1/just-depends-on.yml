@@ -1,0 +1,8 @@
+build:
+  - package_1
+  - package_3
+
+package: []
+test: []
+upload: []
+deploy: []
