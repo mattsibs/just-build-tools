@@ -83,7 +83,6 @@ export class DAG {
             // Move to the next level
             queue = nextQueue;
         }
-
         return buildLevels;
     }
 
@@ -203,7 +202,7 @@ export const parseDependencyGraph = (rootDir: string, cmd: JustCmds) => {
     const subfolders: string[] = []
     justFiles.forEach((justFile) => {
         const subfolder = path.dirname(justFile);
-        const folder = subfolder.replace(rootDir, "")
+        const folder = subfolder.replace(rootDir + "/", "")
 
         subfolders.push(folder)
 

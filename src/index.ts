@@ -86,6 +86,8 @@ program
 
         const circleCiStr = generateCircleCIConfig(dag, buildOrder, rootDir);
         fs.writeFileSync(path.join('out/cirlci-config.yml'), circleCiStr);
+
+
     });
 
 program

@@ -1,17 +1,25 @@
 
-name: package2-build
+circle-ci-props:
+  orbs:
+    node: circleci/node@5.2.3
 
 build:
-  docker:
-    - image: circleci/node:latest
-  steps:
-    - checkout
-    - run:
-        name: Build package_2
-        command: cd package_2 && just build
+  - package-2-build:
+      working_directory: ~/package_2
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build package-2
+            command: just build
 
 
 workflow:
-  context:
-    - context-1
-    - san-slack
+  build:
+    just-depends-on-type: build
+    jobs:
+      - package-2-build:
+          context:
+            - context-2
+            - slack-context

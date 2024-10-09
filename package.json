@@ -1,6 +1,6 @@
 {
   "name": "just-build-tools",
-  "version": "0.0.5",
+  "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",
@@ -45,6 +45,7 @@
     "commander": "^12.1.0",
     "js-yaml": "^4.1.0",
     "just-install": "^2.0.2",
-    "yaml": "^2.5.1"
+    "yaml": "^2.5.1",
+    "zod": "^3.23.8"
   }
 }

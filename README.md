@@ -101,57 +101,108 @@ Creating a file in each subdirectory `circleci-build.yml` allows the `just-build
 
 Example `circleci-build.yml`, everything under `build` is standard job circle ci config. everything under workflow is standard workflow job config.
 ```yml
-name: app1-build
-
 build:
-  docker:
-    - image: circleci/node:latest
-  steps:
-    - checkout
-    - run:
-        name: Build app1
-        command: cd app1 && just build
-
-
-workflow:
-  context:
-    - context-1
-    - san-slack
-```
-
-This will be output to `out/circle-config.yml`, for example.
-```yml
-version: 2
-jobs:
-  - package1-build:
-      docker:
-        - image: circleci/node:latest
-      steps:
-        - checkout
-        - run:
-            name: Build package_1
-            command: cd package_1 && just build
-  - app1-build:
+  - app1-build-step-1:
+      working_directory: ~/app_1
       docker:
         - image: circleci/node:latest
       steps:
         - checkout
         - run:
             name: Build app1
-            command: cd app1 && just build
+            command: just build
+  - app1-build-step-2:
+      working_directory: ~/app_2
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Do something else
+            command: echo do something
+
+
+workflow:
+  - app1-build-step-1:
+      context:
+        - context-1
+        - slack-context
+  - app1-build-step-2:
+      requires:
+        - app1-build-step-1
+      context:
+        - context-1
+        - slack-context
+```
+
+This will be output to `out/circle-config.yml`, for example.
+```yml
+version: 2
+jobs:
+  - package-1-build:
+      working_directory: ~/package_1
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build package_1
+            command: just build
+  - package-3-build:
+      working_directory: ~/package_3
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build package_3
+            command: just build
+  - app1-build-step-1:
+      working_directory: ~/app_1
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build app1
+            command: just build
+  - app1-build-step-2:
+      working_directory: ~/app_2
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Do something else
+            command: echo do something
+
 workflows:
-  build_and_test:
+  build:
     jobs:
-      - package_1:
+      - package-1-build:
           context:
             - context-1
-            - san-slack
-      - app_1:
+            - slack-context
+          requires: []
+      - package-3-build:
           context:
-            - context-1
-            - san-slack
+            - context-3
+            - slack-context
+      - app1-build-step-1:
           requires:
-            - package_1
+            - package-1-build
+            - package-3-build
+          context:
+            - context-1
+            - slack-context
+      - app1-build-step-2:
+          requires:
+            - app1-build-step-1
+            - package-1-build
+            - package-3-build
+          context:
+            - context-1
+            - slack-context
 
 ```
 

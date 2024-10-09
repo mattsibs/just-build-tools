@@ -1,16 +1,38 @@
-name: app2-build
+
+circle-ci-props:
+  parameters:
+    param_deploy_production:
+      default: false
+      type: boolean
+
+  orbs:
+    node: circleci/node@5.0.3
 
 build:
-  docker:
-    - image: circleci/node:latest
-  steps:
-    - checkout
-    - run:
-        name: Build app2
-        command: cd app2 && just build
+  - app2-build-step-1:
+      working_directory: ~/app_2
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build app2
+            command: just build
 
 
 workflow:
-  context:
-    - context-1
-    - san-slack
+  build:
+    just-depends-on-type: build
+    jobs:
+      - app2-build-step-1:
+          context:
+            - context-1
+            - slack-context
+
+  deploy:
+    just-depends-on-type: deploy
+    jobs:
+      - app2-deploy-step-1:
+          context:
+            - context-1
+            - slack-context
