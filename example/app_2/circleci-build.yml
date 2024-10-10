@@ -8,8 +8,19 @@ circle-ci-props:
   orbs:
     node: circleci/node@5.0.3
 
-build:
-  - app2-build-step-1:
+jobs:
+  - app2-build:
+      just-depends-on-type: build
+      working_directory: ~/app_2
+      docker:
+        - image: circleci/node:latest
+      steps:
+        - checkout
+        - run:
+            name: Build app2
+            command: just build
+  - app2-deploy:
+      just-depends-on-type: deploy
       working_directory: ~/app_2
       docker:
         - image: circleci/node:latest

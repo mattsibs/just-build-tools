@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
 import { runProjectWithDAG } from './build';
-import { generateCircleCIConfig } from './ci';
+import { generateCircleCIConfig, JustBuildToolsDags } from './ci';
 import { parseDependencyGraph } from './dag';
 
 const program = new Command();
@@ -81,13 +81,36 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Generating ci config for... root = " + rootDir));
 
-        const dag = parseDependencyGraph(rootDir, "build");
-        const buildOrder = dag.breadthFirstTraversalByLevels();
+        const build = parseDependencyGraph(rootDir, "build");
+        const test = parseDependencyGraph(rootDir, "test");
+        const deploy = parseDependencyGraph(rootDir, "deploy");
+        const upload = parseDependencyGraph(rootDir, "upload");
+        const packageDag = parseDependencyGraph(rootDir, "package");
+        const dags: JustBuildToolsDags = {
+            build: {
+                dag: build,
+                buildOrderLevels: build.breadthFirstTraversalByLevels(),
+            },
+            test: {
+                dag: test,
+                buildOrderLevels: test.breadthFirstTraversalByLevels(),
+            },
+            package: {
+                dag: packageDag,
+                buildOrderLevels: packageDag.breadthFirstTraversalByLevels(),
+            },
+            upload: {
+                dag: upload,
+                buildOrderLevels: upload.breadthFirstTraversalByLevels(),
+            },
+            deploy: {
+                dag: deploy,
+                buildOrderLevels: deploy.breadthFirstTraversalByLevels(),
+            },
+        };
 
-        const circleCiStr = generateCircleCIConfig(dag, buildOrder, rootDir);
+        const circleCiStr = generateCircleCIConfig(dags, rootDir);
         fs.writeFileSync(path.join('out/cirlci-config.yml'), circleCiStr);
-
-
     });
 
 program

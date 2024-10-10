@@ -7,8 +7,9 @@ circle-ci-props:
   orbs:
     node: circleci/node@5.0.3
 
-build:
+jobs:
   - app1-build-step-1:
+      just-depends-on-type: build
       working_directory: ~/app_1
       docker:
         - image: circleci/node:latest
@@ -17,7 +18,8 @@ build:
         - run:
             name: Build app1
             command: just build
-  - app1-build-step-2:
+  - app1-deploy-step-1:
+      just-depends-on-type: deploy
       working_directory: ~/app_2
       docker:
         - image: circleci/node:latest
@@ -47,8 +49,6 @@ workflow:
     just-depends-on-type: deploy
     jobs:
       - app1-deploy-step-1:
-          requires:
-            - app1-build-step-1
           context:
             - context-1
             - slack-context

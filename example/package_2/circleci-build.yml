@@ -3,8 +3,9 @@ circle-ci-props:
   orbs:
     node: circleci/node@5.2.3
 
-build:
+jobs:
   - package-2-build:
+      just-depends-on-type: build
       working_directory: ~/package_2
       docker:
         - image: circleci/node:latest
