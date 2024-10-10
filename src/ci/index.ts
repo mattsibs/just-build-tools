@@ -11,6 +11,32 @@ type DagAndBuildOrder = {
     buildOrderLevels: string[][]
 }
 
+const mergeOtherProps = (folderToContents: Map<string, any>) => {
+    const mergedProps: any = {};
+    folderToContents.forEach((value, folder) => {
+
+        const otherProps = Object.entries(value).filter(([key]) => key !== 'jobs' && key !== 'workflows').reduce((prev, curr) => {
+            return { ...prev, [curr[0]]: curr[1] };
+        }, {});
+
+        Object.entries(otherProps).forEach(([key, value]: any[]) => {
+            if (!mergedProps[key]) {
+                mergedProps[key] = value;
+            } else {
+                if (typeof value === 'string' || typeof value === 'number') {
+                    mergedProps[key] = value;
+                } else {
+                    mergedProps[key] = { ...mergedProps[key], ...value };
+                }
+
+            }
+
+        })
+    });
+
+    return mergedProps;
+}
+
 export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootDir: string) => {
     let circleCiOutput: any = {
         version: 2,
@@ -45,6 +71,7 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
         });
 
     });
+    circleCiOutput = { ...circleCiOutput, ...mergeOtherProps(folderToContents) };
 
     const jobsToWorkflowName = new Map<string, string>();
 

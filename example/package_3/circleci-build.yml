@@ -1,12 +1,16 @@
 version: 3.1
 
 parameters:
+  other_param:
+    default: false
+    type: boolean
   param_deploy_production:
     default: false
     type: boolean
 
 orbs:
   node: circleci/node@5.0.3
+  aws-s3: circleci/aws-s3@x.y.z
   slack: circleci/slack@4.12
 
 jobs:
