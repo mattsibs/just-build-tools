@@ -1,5 +1,1 @@
-build: []
-package: []
-test: []
-upload: []
-deploy: []
+depends_on: []

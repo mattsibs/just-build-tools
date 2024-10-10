@@ -1,39 +1,70 @@
+version: 3.1
 
-circle-ci-props:
-  parameters:
-    param_deploy_production:
-      default: false
-      type: boolean
+parameters:
+  param_deploy_production:
+    default: false
+    type: boolean
 
-  orbs:
-    node: circleci/node@5.0.3
+orbs:
+  node: circleci/node@5.0.3
+  slack: circleci/slack@4.12
 
 jobs:
-  - app3-build-step-1:
-      just-depends-on-type: build
-      working_directory: ~/app_3
-      docker:
-        - image: circleci/node:latest
-      steps:
-        - checkout
-        - run:
-            name: Build app3
-            command: just build
+  app3_build:
+    working_directory: ~/app_3
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app3
+          command: just build
 
+  app3_deploy_dev:
+    working_directory: ~/app_3
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app3
+          command: just deploy_dev
 
-workflow:
-  build:
-    just-depends-on-type: build
+  app3_deploy_prod:
+    working_directory: ~/app_3
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app3
+          command: just deploy_prod
+
+workflows:
+  deploy_dev:
+    when:
+      and:
+        - not: << pipeline.parameters.param_deploy_production >>
     jobs:
-      - app3-build-step-1:
+      - app3_deploy_dev:
           context:
-            - context-1
+            - context-dev
             - slack-context
 
-  deploy:
-    just-depends-on-type: deploy
+  deploy_prod:
+    when: << pipeline.parameters.param_deploy_production >>
     jobs:
-      - app3-deploy-step-1:
+      - app3_deploy_prod:
           context:
-            - context-1
+            - context-prod
+            - slack-context
+
+  build_and_test:
+    when:
+      and:
+        - not: << pipeline.parameters.param_deploy_production >>
+    jobs:
+      - app3_build:
+          context:
+            - context-dev
             - slack-context

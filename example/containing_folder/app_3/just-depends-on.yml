@@ -1,12 +1,5 @@
-
-build:
+depends_on:
   - package_1
   - package_3
-
-package: []
-test: []
-upload: []
-
-deploy:
   - app_1
   - app_2

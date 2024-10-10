@@ -1,26 +1,34 @@
+version: 3.1
 
-circle-ci-props:
-  orbs:
-    node: circleci/node@5.1.3
+parameters:
+  param_deploy_production:
+    default: false
+    type: boolean
+
+orbs:
+  node: circleci/node@5.0.3
+  slack: circleci/slack@4.12
 
 jobs:
-  - package-1-build:
-      just-depends-on-type: build
-      working_directory: ~/package_1
-      docker:
-        - image: circleci/node:latest
-      steps:
-        - checkout
-        - run:
-            name: Build package-1
-            command: just build
+  package_1_build:
+    working_directory: ~/package_1
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build package_1
+          command: just build
 
 
-workflow:
-  build:
-    just-depends-on-type: build
+workflows:
+
+  build_and_test:
+    when:
+      and:
+        - not: << pipeline.parameters.param_deploy_production >>
     jobs:
-      - package-1-build:
+      - package_1_build:
           context:
-            - context-1
+            - context-dev
             - slack-context

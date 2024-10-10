@@ -1,11 +1,5 @@
-
-build:
+depends_on:
   - package_1
   - containing_folder/package_0
-
-package: []
-test: []
-upload: []
-
-deploy:
   - app_1
+

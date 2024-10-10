@@ -1,7 +1,7 @@
 import { execSync } from "child_process";
 import path from "path";
-import { JustCmds } from "../models";
-export const runProjectWithDAG = (cmd: JustCmds, buildOrder: string[][], rootDir: string) => {
+
+export const runProjectWithDAG = (cmd: string, buildOrder: string[][], rootDir: string) => {
 
     console.log("Dependency order", buildOrder)
     buildOrder.forEach((level) => {

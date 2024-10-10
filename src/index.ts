@@ -5,7 +5,7 @@ import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
 import { runProjectWithDAG } from './build';
-import { generateCircleCIConfig, JustBuildToolsDags } from './ci';
+import { generateCircleCIConfig } from './ci';
 import { parseDependencyGraph } from './dag';
 
 const program = new Command();
@@ -23,7 +23,7 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Building project ... root = " + rootDir));
 
-        const dag = parseDependencyGraph(rootDir, "build");
+        const dag = parseDependencyGraph(rootDir);
 
         const buildOrder = dag.breadthFirstTraversalByLevels();
 
@@ -38,7 +38,7 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Deploying project ... root = " + rootDir));
 
-        const dag = parseDependencyGraph(rootDir, "deploy");
+        const dag = parseDependencyGraph(rootDir);
         const buildOrder = dag.breadthFirstTraversalByLevels();
 
         runProjectWithDAG("deploy", buildOrder, rootDir);
@@ -51,7 +51,7 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Testing project ... root = " + rootDir));
 
-        const dag = parseDependencyGraph(rootDir, "test");
+        const dag = parseDependencyGraph(rootDir);
         const buildOrder = dag.breadthFirstTraversalByLevels();
 
         runProjectWithDAG("test", buildOrder, rootDir);
@@ -65,7 +65,7 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Packaging project ... root = " + rootDir));
 
-        const dag = parseDependencyGraph(rootDir, "package");
+        const dag = parseDependencyGraph(rootDir);
         const buildOrder = dag.breadthFirstTraversalByLevels();
 
         runProjectWithDAG("test", buildOrder, rootDir);
@@ -81,35 +81,12 @@ program
         const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
         console.log(chalk.green("Generating ci config for... root = " + rootDir));
 
-        const build = parseDependencyGraph(rootDir, "build");
-        const test = parseDependencyGraph(rootDir, "test");
-        const deploy = parseDependencyGraph(rootDir, "deploy");
-        const upload = parseDependencyGraph(rootDir, "upload");
-        const packageDag = parseDependencyGraph(rootDir, "package");
-        const dags: JustBuildToolsDags = {
-            build: {
-                dag: build,
-                buildOrderLevels: build.breadthFirstTraversalByLevels(),
-            },
-            test: {
-                dag: test,
-                buildOrderLevels: test.breadthFirstTraversalByLevels(),
-            },
-            package: {
-                dag: packageDag,
-                buildOrderLevels: packageDag.breadthFirstTraversalByLevels(),
-            },
-            upload: {
-                dag: upload,
-                buildOrderLevels: upload.breadthFirstTraversalByLevels(),
-            },
-            deploy: {
-                dag: deploy,
-                buildOrderLevels: deploy.breadthFirstTraversalByLevels(),
-            },
-        };
+        const dag = parseDependencyGraph(rootDir);
 
-        const circleCiStr = generateCircleCIConfig(dags, rootDir);
+        const circleCiStr = generateCircleCIConfig({
+            dag: dag,
+            buildOrderLevels: dag.breadthFirstTraversalByLevels(),
+        }, rootDir);
         fs.writeFileSync(path.join('out/cirlci-config.yml'), circleCiStr);
     });
 

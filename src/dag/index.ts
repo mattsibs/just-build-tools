@@ -1,16 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { JustCmds } from '../models';
 
 // Type definitions for the graph
 
 export interface JustDependsOn {
-    build: string[];
-    test: string[];
-    package: string[];
-    deploy: string[];
-    upload: string[];
+    depends_on: string[];
 }
 
 // Graph class to represent a DAG
@@ -129,33 +124,13 @@ const parseDependencies = (dir: string): JustDependsOn => {
     }
 
     return {
-        build: [],
-        test: [],
-        package: [],
-        deploy: [],
-        upload: [],
+        depends_on: [],
     };
 };
 
-const getDependencies = (cmd: JustCmds, dependsOn: JustDependsOn) => {
-    switch (cmd) {
-        case 'build':
-            return dependsOn.build;
-        case 'test':
-            return dependsOn.test;
-        case 'package':
-            return dependsOn.package;
-        case 'deploy':
-            return dependsOn.deploy;
-        case 'upload':
-            return dependsOn.upload;
-        default:
-            return [];
-    }
-}
 
 // Function to build the DAG from the subfolders and their dependencies
-const buildDependencyGraph = (subfolders: string[], rootDir: string, cmd: JustCmds): DAG => {
+const buildDependencyGraph = (subfolders: string[], rootDir: string): DAG => {
     const dag = new DAG();
     subfolders.forEach((subfolder) => {
         dag.addNode(subfolder);
@@ -164,7 +139,7 @@ const buildDependencyGraph = (subfolders: string[], rootDir: string, cmd: JustCm
         const subfolderPath = path.join(rootDir, subfolder);
         const dependsOn = parseDependencies(subfolderPath);
 
-        getDependencies(cmd, dependsOn).forEach((dep) => {
+        dependsOn.depends_on.forEach((dep) => {
             dag.addEdge(dep, subfolder);
         });
 
@@ -197,7 +172,7 @@ const scanForJustDependsOnFiles = (dir: string): string[] => {
     return justFiles;
 };
 
-export const parseDependencyGraph = (rootDir: string, cmd: JustCmds) => {
+export const parseDependencyGraph = (rootDir: string) => {
     const justFiles = scanForJustDependsOnFiles(rootDir);
     const subfolders: string[] = []
     justFiles.forEach((justFile) => {
@@ -209,5 +184,5 @@ export const parseDependencyGraph = (rootDir: string, cmd: JustCmds) => {
     });
 
     // Build the dependency graph
-    return buildDependencyGraph(subfolders, rootDir, cmd);
+    return buildDependencyGraph(subfolders, rootDir);
 }

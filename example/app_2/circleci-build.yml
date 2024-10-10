@@ -1,49 +1,92 @@
+version: 2.1
 
-circle-ci-props:
-  parameters:
-    param_deploy_production:
-      default: false
-      type: boolean
+parameters:
+  param_deploy_production:
+    default: false
+    type: boolean
 
-  orbs:
-    node: circleci/node@5.0.3
+orbs:
+  node: circleci/node@5.0.3
+  slack: circleci/slack@4.22
 
 jobs:
-  - app2-build:
-      just-depends-on-type: build
-      working_directory: ~/app_2
-      docker:
-        - image: circleci/node:latest
-      steps:
-        - checkout
-        - run:
-            name: Build app2
-            command: just build
-  - app2-deploy:
-      just-depends-on-type: deploy
-      working_directory: ~/app_2
-      docker:
-        - image: circleci/node:latest
-      steps:
-        - checkout
-        - run:
-            name: Build app2
-            command: just build
+  app2_build:
+    working_directory: ~/app_2
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app2
+          command: just build
 
+  app2_deploy_pre_steps:
+    working_directory: ~/app_2
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app2
+          command: just pre_deploy
 
-workflow:
-  build:
-    just-depends-on-type: build
+  app2_deploy_dev:
+    working_directory: ~/app_2
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app2
+          command: just deploy_dev
+
+  app2_deploy_prod:
+    working_directory: ~/app_2
+    docker:
+      - image: circleci/node:latest
+    steps:
+      - checkout
+      - run:
+          name: Build app2
+          command: just deploy_prod
+
+workflows:
+  deploy_dev:
+    when:
+      and:
+        - not: << pipeline.parameters.param_deploy_production >>
     jobs:
-      - app2-build-step-1:
+      - app2_deploy_pre_steps:
           context:
-            - context-1
+            - context-dev
+            - slack-context
+      - app2_deploy_dev:
+          requires:
+            - app2_deploy_pre_steps
+          context:
+            - context-dev
             - slack-context
 
-  deploy:
-    just-depends-on-type: deploy
+  deploy_prod:
+    when: << pipeline.parameters.param_deploy_production >>
     jobs:
-      - app2-deploy-step-1:
+      - app2_deploy_pre_steps:
           context:
-            - context-1
+            - context-prod
+            - slack-context
+      - app2_deploy_prod:
+          requires:
+            - app2_deploy_pre_steps
+          context:
+            - context-prod
+            - slack-context
+
+  build_and_test:
+    when:
+      and:
+        - not: << pipeline.parameters.param_deploy_production >>
+    jobs:
+      - app2_build:
+          context:
+            - context-dev
             - slack-context
