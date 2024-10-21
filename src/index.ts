@@ -88,7 +88,7 @@ program
     .addArgument(program.createArgument('type', 'Ci to output').choices(['circleci']))
     .option('-f, --folder <folder>', 'Root build folder')
     .option('-o, --output <file>', 'Output file path')
-    .action((_type: string, options: { folder?: string, output?: string }) => {
+    .action((type: string, options: { folder?: string, output?: string }) => {
         const rootDir = options.folder
             ? path.isAbsolute(options.folder) ? options.folder : path.join(process.cwd(), options.folder)
             : process.cwd();
@@ -103,7 +103,7 @@ program
         const circleCiStr = generateCircleCIConfig({
             dag: dag,
             buildOrderLevels: dag.breadthFirstTraversalByLevels(),
-        }, (options.folder && path.isAbsolute(options.folder)) ? rootDir : undefined);
+        }, rootDir);
 
         const outFile = options.output || path.join('out/cirlci-config.yml')
 
