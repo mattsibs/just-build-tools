@@ -70,7 +70,7 @@ const mergeOtherProps = (folderToContents: Map<string, any>) => {
     return mergedProps;
 }
 
-export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootDir: string) => {
+export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootDir?: string) => {
     let circleCiOutput: any = {
         version: 2,
         jobs: {},
@@ -82,7 +82,7 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
 
     buildOrderLevels.forEach((level) => {
         level.forEach((folder) => {
-            const filePath = path.join(rootDir, folder, 'circleci-build.yml');
+            const filePath = rootDir ? path.join(rootDir, folder, 'circleci-build.yml') : path.join(folder, 'circleci-build.yml');
             console.log(chalk.blue("Reading " + filePath));
 
             const fileContents = fs.readFileSync(filePath, 'utf8');
