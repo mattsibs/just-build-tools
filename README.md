@@ -7,12 +7,19 @@ This tool is designed for polyglot monorepo builds, or cases where submodules ha
 
 ## Getting Started
 
-Add `just-depends-on.yml` and `justfile` to each subdirectory you want to build. Then run `npx just-build-tools build` build all dependent modules in order.
+Add `depends-on.yml` and `justfile` to each subdirectory you want to build. Then run `npx just-build-tools run build` build all dependent modules in order.
 
 ```sh
-npx just-build-tools build
-Building project ... root = ~/just-depends-on/example
-Dependency order [ [ 'package_1', 'package_2' ], [ 'app_2', 'package_3' ], [ 'app_1' ] ]
+npx just-build-tools run build
+Running command build
+Deploying project ... root = /Users/matthewsibson/Code/Personal/depends-on/example
+Parsed project:
+
+[containing_folder/package_0] - [package_1] - [package_2]
+  [package_3]
+    [app_1]
+      [app_2]
+        [containing_folder/app_3]
 -----------------------------------------
 build package_1...
 -----------------------------------------
@@ -32,45 +39,32 @@ Finished build app_1
 ```
 
 ## File convention
-The following just commands as a standard (to be reviewed) `build, test, package, upload, deploy`.
+Two files are required, `justfile` `depends-on.yml`. When running `npx just-build-tools run build` the cli will find all justfiles with a `build` command and run them in dependant order.
 ```
 /
 /app_1/
-...just-depends-on.yml
+...depends-on.yml
 ...justfile
 /app_2/
-...just-depends-on.yml
+...depends-on.yml
 ...justfile
 /package_1/
-...just-depends-on.yml
+...depends-on.yml
 ...justfile
 /package_2/
-...just-depends-on.yml
+...depends-on.yml
 ...justfile
 /package_3/
-...just-depends-on.yml
+...depends-on.yml
 ...justfile
 ```
 
-Example `just-depends-on.yml` might look like this,
+Example `depends-on.yml` might look like this,
 ```yml
 //frontend-app
-build:
+depends_on:
   - package_1
   - package_3
-package:
-  - package_1
-  - package_3
-test:
-  - package_1
-  - package_3
-upload:
-  - package_1
-  - package_3
-deploy:
-  - api_1
-  - api_2
-  - api_3
 
 ```
 
@@ -83,15 +77,6 @@ build:
     yarn generate
     yarn build
 
-test:
-    yarn test
-
-package:
-    yarn export
-
-deploy:
-    terraform init
-    terraform apply --auto-approve
 ```
 
 ## Creating ci config
@@ -210,7 +195,7 @@ workflows:
 ## Running the cli
 Cli can be run via `npx`
 ```
-npx just-build-tools build
+npx just-build-tools run build
 ```
 
 All options viewable by
@@ -224,10 +209,7 @@ Options:
   -h, --help           display help for command
 
 Commands:
-  build [options]      Build whole project
-  deploy [options]     Deploy whole project
-  test [options]       Test whole project
-  package [options]    Package whole project
+  run [options]      Build whole project
   ci [options] <type>  Generate ci config for whole project
   help                 Display help information
 ```
