@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import chalk from 'chalk';
 
 // Type definitions for the graph
 
@@ -113,11 +114,22 @@ export class DAG {
 
         return buildOrder;
     }
+
+    displayDAG() {
+        const levels = this.breadthFirstTraversalByLevels();
+
+        levels.forEach((level, index) => {
+            // Indent the nodes according to their level in the graph
+            const indentation = "  ".repeat(index);
+            const formattedLevel = level.map(node => `[${node}]`).join(" - ");
+            console.log(chalk.yellow(`${indentation}${formattedLevel}`));
+        });
+    }
 }
 
-// Function to parse the just-depends-on.yml file for a subfolder
+// Function to parse the depends-on.yml file for a subfolder
 const parseDependencies = (dir: string): JustDependsOn => {
-    const filePath = path.join(dir, 'just-depends-on.yml');
+    const filePath = path.join(dir, 'depends-on.yml');
     if (fs.existsSync(filePath)) {
         const fileContents = fs.readFileSync(filePath, 'utf8');
         return yaml.load(fileContents) as JustDependsOn;
@@ -148,7 +160,7 @@ const buildDependencyGraph = (subfolders: string[], rootDir: string): DAG => {
 
     return dag;
 };
-const scanForJustDependsOnFiles = (dir: string): string[] => {
+const scanForJustDependsOnFiles = (dir: string, debug?: boolean): string[] => {
     let justFiles: string[] = [];
 
     const items = fs.readdirSync(dir);
@@ -163,8 +175,11 @@ const scanForJustDependsOnFiles = (dir: string): string[] => {
         if (stats.isDirectory()) {
             // Recursively search in subdirectories
             justFiles = justFiles.concat(scanForJustDependsOnFiles(itemPath));
-        } else if (item === 'just-depends-on.yml') {
-            // Found a just-depends-on.yml file
+        } else if (item === 'depends-on.yml') {
+            if (debug) {
+                console.log("found depends_on.yml file in " + itemPath);
+            }
+
             justFiles.push(itemPath);
         }
     });

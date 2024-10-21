@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import chalk from 'chalk';
+import { execSync } from 'child_process';
 import { Command } from 'commander';
 import fs from 'fs';
 import path from 'path';
-import { runProjectWithDAG } from './build';
 import { generateCircleCIConfig } from './ci';
 import { parseDependencyGraph } from './dag';
+import { getJustfileCommands } from './file_utils';
 
 const program = new Command();
 
@@ -16,59 +17,69 @@ program
     .description('A simple CLI tool in TypeScript');
 
 program
-    .command('build')
-    .description('Build whole project')
+    .command('show')
+    .description('Display project dependencies')
     .option('-f, --folder <folder>', 'Root build folder')
     .action((options: { folder?: string }) => {
-        const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
-        console.log(chalk.green("Building project ... root = " + rootDir));
+        const rootDir = options.folder
+            ? path.isAbsolute(options.folder) ? options.folder : path.join(process.cwd(), options.folder)
+            : process.cwd();
+
+        console.log(chalk.green("Reading project ... root = " + rootDir + "\n"));
 
         const dag = parseDependencyGraph(rootDir);
 
-        const buildOrder = dag.breadthFirstTraversalByLevels();
-
-        runProjectWithDAG("build", buildOrder, rootDir);
+        console.log(chalk.blue("Parsed project: \n"));
+        dag.displayDAG();
     });
 
 program
-    .command('deploy')
-    .description('Deploy whole project')
+    .command('run')
+    .description('Run cmd for project')
+    .argument("cmd")
     .option('-f, --folder <folder>', 'Root build folder')
-    .action((options: { folder?: string }) => {
-        const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
-        console.log(chalk.green("Deploying project ... root = " + rootDir));
+    .action((cmd: string, options: { folder?: string }) => {
+        console.log(chalk.blue("Running command " + cmd));
+
+        const rootDir = options.folder
+            ? path.isAbsolute(options.folder) ? options.folder : path.join(process.cwd(), options.folder)
+            : process.cwd(); console.log(chalk.green("Deploying project ... root = " + rootDir));
 
         const dag = parseDependencyGraph(rootDir);
+
+        console.log(chalk.blue("Parsed project: \n"));
+        dag.displayDAG();
         const buildOrder = dag.breadthFirstTraversalByLevels();
 
-        runProjectWithDAG("deploy", buildOrder, rootDir);
-    });
-program
-    .command('test')
-    .description('Test whole project')
-    .option('-f, --folder <folder>', 'Root build folder')
-    .action((options: { folder?: string }) => {
-        const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
-        console.log(chalk.green("Testing project ... root = " + rootDir));
+        const availableCommands = buildOrder
+            .flatMap(folders => folders.flatMap(folder => getJustfileCommands(path.join(rootDir, folder, "/justfile"))))
+            .filter((value, index, array) => array.indexOf(value) === index)
 
-        const dag = parseDependencyGraph(rootDir);
-        const buildOrder = dag.breadthFirstTraversalByLevels();
+        if (availableCommands.indexOf(cmd) === -1) {
+            console.log(chalk.red("Command not recognised, " + cmd));
+            console.log(chalk.white("Choose from " + availableCommands));
+        }
 
-        runProjectWithDAG("test", buildOrder, rootDir);
-    });
+        buildOrder.forEach((level) => {
+            level.forEach((folder) => {
+                const commandsForFolder = getJustfileCommands(path.join(rootDir, folder, "/justfile"));
+                if (commandsForFolder.indexOf(cmd) === -1) {
+                    console.log(`No ${cmd} command foudn for ${folder}...`);
+                    return;
+                }
 
-program
-    .command('package')
-    .description('Package whole project')
-    .option('-f, --folder <folder>', 'Root build folder')
-    .action((options: { folder?: string }) => {
-        const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
-        console.log(chalk.green("Packaging project ... root = " + rootDir));
+                console.log("-----------------------------------------")
+                console.log(`${cmd} ${folder}...`);
+                console.log("-----------------------------------------")
 
-        const dag = parseDependencyGraph(rootDir);
-        const buildOrder = dag.breadthFirstTraversalByLevels();
+                execSync(`just ${cmd}`, { cwd: path.join(rootDir, folder), stdio: 'inherit' });
+                console.log("-----------------------------------------")
+                console.log(`Finished ${cmd}`, folder)
+                console.log("-----------------------------------------")
+            })
+        });
 
-        runProjectWithDAG("test", buildOrder, rootDir);
+
     });
 
 program
@@ -76,18 +87,28 @@ program
     .description('Generate ci config for whole project')
     .addArgument(program.createArgument('type', 'Ci to output').choices(['circleci']))
     .option('-f, --folder <folder>', 'Root build folder')
-    .option('-o, --output <folder>', 'Output folder')
-    .action((type: string, options: { folder?: string }) => {
-        const rootDir = options.folder ? path.join(process.cwd(), options.folder) : process.cwd();
+    .option('-o, --output <file>', 'Output file path')
+    .action((type: string, options: { folder?: string, output?: string }) => {
+        const rootDir = options.folder
+            ? path.isAbsolute(options.folder) ? options.folder : path.join(process.cwd(), options.folder)
+            : process.cwd();
+
         console.log(chalk.green("Generating ci config for... root = " + rootDir));
 
         const dag = parseDependencyGraph(rootDir);
+
+        console.log(chalk.blue("Parsed project: \n"));
+        dag.displayDAG();
 
         const circleCiStr = generateCircleCIConfig({
             dag: dag,
             buildOrderLevels: dag.breadthFirstTraversalByLevels(),
         }, rootDir);
-        fs.writeFileSync(path.join('out/cirlci-config.yml'), circleCiStr);
+
+        const outFile = options.output || path.join('out/cirlci-config.yml')
+
+        fs.writeFileSync(outFile, circleCiStr);
+        console.log(chalk.green("Generated file at " + outFile));
     });
 
 program

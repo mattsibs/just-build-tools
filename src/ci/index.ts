@@ -13,6 +13,11 @@ type DagAndBuildOrder = {
 
 const mergeOtherProps = (folderToContents: Map<string, any>) => {
     const mergedProps: any = {};
+    const parameters: any = [];
+    const orbs: any = [];
+    const executors: any = [];
+    const commands: any = [];
+
     folderToContents.forEach((value, folder) => {
 
         const otherProps = Object.entries(value).filter(([key]) => key !== 'jobs' && key !== 'workflows').reduce((prev, curr) => {
@@ -20,6 +25,18 @@ const mergeOtherProps = (folderToContents: Map<string, any>) => {
         }, {});
 
         Object.entries(otherProps).forEach(([key, value]: any[]) => {
+            if (key === "parameters") {
+                parameters.push(value);
+            }
+            if (key === "orbs") {
+                orbs.push(value);
+            }
+            if (key === "executors") {
+                executors.push(value);
+            }
+            if (key === "commands") {
+                commands.push(value);
+            }
             if (!mergedProps[key]) {
                 mergedProps[key] = value;
             } else {
@@ -34,13 +51,29 @@ const mergeOtherProps = (folderToContents: Map<string, any>) => {
         })
     });
 
+
+    for (const param of parameters) {
+        mergedProps.parameters = { ...mergedProps.parameters, ...param };
+    }
+
+    for (const orb of orbs) {
+        mergedProps.orbs = { ...mergedProps.orbs, ...orb };
+    }
+    for (const executor of executors) {
+        mergedProps.executors = { ...mergedProps.executors, ...executor };
+    }
+
+    for (const command of commands) {
+        mergedProps.commands = { ...mergedProps.commands, ...command };
+    }
+
     return mergedProps;
 }
 
 export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootDir: string) => {
     let circleCiOutput: any = {
         version: 2,
-        jobs: [],
+        jobs: {},
         workflows: {}
     };
     const folderToContents = new Map<string, any>();
@@ -56,11 +89,9 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
             const circleCiObj = yaml.load(fileContents) as any;
 
             folderToContents.set(folder, circleCiObj);
-            circleCiOutput = { ...circleCiOutput, ...circleCiObj['circle-ci-props'] };
 
             Object.entries(circleCiObj.jobs).forEach(([key, cmd]: any[]) => {
-
-                circleCiOutput.jobs.push({ [key]: cmd });
+                circleCiOutput.jobs[key] = cmd;
 
                 if (!folderToCommands.has(folder)) {
                     folderToCommands.set(folder, []);
@@ -73,7 +104,9 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
     });
     circleCiOutput = { ...circleCiOutput, ...mergeOtherProps(folderToContents) };
 
-    const jobsToWorkflowName = new Map<string, string>();
+    const folderJobNames = new Map<string, string[]>();
+    const jobsToWorkflowNames = new Map<string, string[]>();
+    const workflowNameToCondition = new Map<string, any[]>();
 
 
     buildOrderLevels.forEach((level) => {
@@ -81,23 +114,30 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
             const circleCiObj = folderToContents.get(folder)!;
 
             Object.entries(circleCiObj.workflows).forEach(([workflowName, workflowCommand]: any[]) => {
+                const whens = workflowCommand.when
+                if (whens) {
+                    workflowNameToCondition.has(workflowName) ? workflowNameToCondition.get(workflowName)!.push(whens) : workflowNameToCondition.set(workflowName, [whens]);
+                }
+
                 workflowCommand.jobs.forEach((job: any) => {
                     const keys = Object.keys(job);
                     keys.forEach((key) => {
-                        jobsToWorkflowName.set(key, workflowName);
+                        jobsToWorkflowNames.has(key) ? jobsToWorkflowNames.get(key)!.push(workflowName) : jobsToWorkflowNames.set(key, [workflowName]);
+                        folderJobNames.has(folder) ? folderJobNames.get(folder)!.push(key) : folderJobNames.set(folder, [key]);
                     })
                 })
             });
         })
     });
 
-
-
     buildOrderLevels.forEach((level) => {
         level.forEach((folder) => {
             const circleCiObj = folderToContents.get(folder)!;
 
             Object.entries(circleCiObj.workflows).forEach(([workflowName, workflowCommand]: any[]) => {
+                const whens = workflowNameToCondition.get(workflowName);
+
+
                 const jobs = workflowCommand.jobs;
 
                 jobs.forEach((job: any) => {
@@ -115,24 +155,41 @@ export const generateCircleCIConfig = (dagAndBuildOrder: DagAndBuildOrder, rootD
                     }
 
                     const requriedJobs = (dagAndBuildOrder.dag.dependencies.get(folder) || []).flatMap((dep) => {
-                        return folderToCommands.get(dep) || [];
-                    }).filter((job) => jobsToWorkflowName.get(job) === workflowName)
+                        return Array.from(new Set(folderJobNames.get(dep) || []));
+                    }).filter((job) => jobsToWorkflowNames.get(job)?.indexOf(workflowName) !== -1);
 
                     circleCiOutput.workflows[workflowName].jobs.push({
                         [keys[0]]: {
                             ...job[keys[0]],
+                            when: undefined,
                             requires: [
                                 ...(job[keys[0]].requires || []),
                                 ...requriedJobs]
                         }
                     });
                 })
+                if (whens) {
+                    const normalWhens = whens.filter(when => typeof when === 'string').filter((value, index, array) =>
+                        array.indexOf(value) === index);
 
+                    const ands = whens.filter(when => typeof when === 'object').filter((value, index, array) =>
+                        array.map(arrVal => JSON.stringify(arrVal)).indexOf(JSON.stringify(value)) === index
+                    ).filter(value => !!value?.and).flatMap(when => when.and);
+
+                    ands.push(...normalWhens);
+
+                    if (ands) {
+                        circleCiOutput.workflows[workflowName].when = {
+                            and: ands?.length > 0 ? ands : undefined
+                        }
+                    }
+
+
+                }
             });
 
         })
     });
-
-    return yaml.dump(circleCiOutput);
+    return yaml.dump(circleCiOutput, { lineWidth: 99999999999 });
 };
 
